@@ -71,3 +71,30 @@ export function set_pixel_dimensions<T extends HTMLElement>(el: T, w: number, h:
   el.style.width = `${w}px`;
   el.style.height = `${h}px`
 }
+
+export function uniform_array_sample<T>(a: T[]): T {
+  return a[Math.floor(Math.random() * a.length)];
+}
+
+export function iota(n: number, init: number): number[] {
+  const arr = new Array(n);
+  for (let i = 0; i < arr.length; i++) {
+    arr[i] = i + init;
+  }
+  return arr;
+}
+
+export function randperm(n: number): number[] {
+  const arr = iota(n, 1);
+  const result = new Array(n);
+
+  let i = 0;
+  while (n > 0) {
+    const idx = Math.min(n - 1, Math.floor(Math.random() * n));
+    result[i++] = arr[idx] - 1;
+    arr[idx] = arr[n - 1];
+    n--;
+  }
+
+  return result;
+}

@@ -4,7 +4,7 @@ import * as state from './state'
 type ImageDescriptor = {
   image_url: string;
   correct_response: string;
-  reward: number,
+  p_large_reward: number,
   image_set: number
 };
 
@@ -20,17 +20,32 @@ type TrialDescriptor = {
 
 type TrialBlock = TrialDescriptor[];
 
+type TrialMatrix = {
+  rows: TrialBlock,
+  index: number
+}
+
+function advance(matrix: TrialMatrix): TrialDescriptor {
+  return matrix.rows[matrix.index++];
+}
+
 const IMAGES: ImageStimulus[] = [];
-const TRIAL_MATRIX: TrialBlock = [];
-let TRIAL_NUMBER = 0;
 
 function init_images() {
   const urls = [
     'https://imgur.com/gB0yuuy.png',
+    'https://imgur.com/PpFTJzJ.png',
+    'https://imgur.com/gB0yuuy.png',
+    'https://imgur.com/PpFTJzJ.png',
+    'https://imgur.com/gB0yuuy.png',
     'https://imgur.com/PpFTJzJ.png'
   ];
+  
+  const p_large_rewards = [0.2, 0.5, 0.8];
+
   for (let i = 0; i < urls.length; i++) {
-    const desc = make_image_descriptor(urls[i], 0, 'ArrowUp', 1);
+    const p_large_reward = util.uniform_array_sample(p_large_rewards);
+    const desc = make_image_descriptor(urls[i], 0, '', p_large_reward);
     IMAGES.push({
       image_element: make_image_element(urls[i]), 
       descriptor: desc
@@ -44,44 +59,96 @@ function make_image_element(src: string): HTMLImageElement {
   return image;
 }
 
-function make_image_descriptor(image_url: string, image_set: number, correct_response: string, reward: number): ImageDescriptor {
-  return {image_url, correct_response, reward, image_set};
+function make_image_descriptor(image_url: string, image_set: number, correct_response: string, p_large_reward: number): ImageDescriptor {
+  return {image_url, correct_response, p_large_reward, image_set};
 }
 
-function init_block() {
-  TRIAL_NUMBER = 0;
-  TRIAL_MATRIX.splice(0, TRIAL_MATRIX.length);
-  
-  for (let i = 0; i < 3; i++) {
-    const image_index = Math.floor(Math.random() * IMAGES.length);
-    TRIAL_MATRIX.push({
-      image_element: IMAGES[image_index].image_element, 
-      image_descriptor: IMAGES[image_index].descriptor
+function new_image_set(images: ImageStimulus[]): ImageStimulus[] {
+  const result: ImageStimulus[] = [];
+
+  const image_set_sizes = [2, 3, 4, 5];
+  const correct_keys = ['ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown'];
+  const image_set_size = util.uniform_array_sample(image_set_sizes);
+
+  const image_set_perm = util.randperm(images.length);
+  const key_perm = util.randperm(correct_keys.length);
+
+  for (let i = 0; i < image_set_size; i++) {
+    const image_info = images[image_set_perm[i]];
+    image_info.descriptor.correct_response = correct_keys[key_perm[i]];
+    result.push(image_info);
+  }
+
+  return result;
+}
+
+function new_trial_matrix(image_set: ImageStimulus[], num_trials: number): TrialMatrix {
+  const rows: TrialDescriptor[] = [];
+
+  for (let i = 0; i < num_trials; i++) {
+    const image = util.uniform_array_sample(image_set);
+    rows.push({
+      image_element: image.image_element, 
+      image_descriptor: image.descriptor
     });
   }
 
-  state.next(new_trial);
+  return {rows, index: 0};
 }
 
-function new_trial() {
-  const trial = TRIAL_MATRIX[TRIAL_NUMBER++];
+function new_block() {
+  const num_trials = 3;
+  const image_set = new_image_set(IMAGES);
+  const trial_matrix = new_trial_matrix(image_set, num_trials);
+  state.next(() => present_image_set(trial_matrix, image_set));
+}
+
+function present_image_set(trial_matrix: TrialMatrix, images: ImageStimulus[]) {
+  const page = util.make_page();
+  const text = util.make_page();
+  text.style.color = 'white';
+  text.innerText = 'These are the images for this block. Press Enter to proceed.';
+
+  const image_container = util.make_page();
+  image_container.style.flexDirection = 'row';
+  for (let i = 0; i < images.length; i++) {
+    const el = util.make_page();
+    el.appendChild(images[i].image_element);
+    image_container.appendChild(el);
+  }
+
+  page.appendChild(text);
+  page.appendChild(image_container);
+  util.append_page(page);
+  util.one_shot_key_listener('keydown', e => {
+    if (e.key === 'Enter') {
+      util.remove_page(page);
+      state.next(() => new_trial(trial_matrix));
+    }
+  });
+}
+
+function new_trial(trial_matrix: TrialMatrix) {
+  const trial = advance(trial_matrix);
 
   const image_stim: ImageStimulus = {
     image_element: trial.image_element,
     descriptor: trial.image_descriptor
   };
 
-  state.next(() => respond(image_stim));
+  const reward_rand = Math.random();
+  const is_big_reward = reward_rand < trial.image_descriptor.p_large_reward;
+  state.next(() => respond(trial_matrix, image_stim, is_big_reward));
 }
 
-function respond(stim: ImageStimulus) {
+function respond(trial_matrix: TrialMatrix, stim: ImageStimulus, is_big_reward: boolean) {
   const page = util.make_page();
   util.set_percent_dimensions(page, 50, 50);
   util.append_page(page);
   page.appendChild(stim.image_element);
 
-  const on_correct = () => state.next(() => success_feedback(stim.descriptor));
-  const on_incorrect = () => state.next(error_feedback);  
+  const on_correct = () => state.next(() => success_feedback(trial_matrix, is_big_reward));
+  const on_incorrect = () => state.next(() => error_feedback(trial_matrix));  
 
   const abort = util.one_shot_key_listener('keydown', e => {
     if (e.key === stim.descriptor.correct_response) {
@@ -101,37 +168,39 @@ function respond(stim: ImageStimulus) {
   }, 1000)
 }
 
-function success_feedback(image_desc: ImageDescriptor) {
+function success_feedback(trial_matrix: TrialMatrix, is_big_reward: boolean) {
   const timeout_ms = 1000;
 
   const page = util.make_page();
-  util.set_pixel_dimensions(page, 50, 50);
-  page.style.backgroundColor = image_desc.reward == 1 ? 'blue' : 'green';
+  util.set_pixel_dimensions(page, 100, 100);
+  page.style.backgroundColor = is_big_reward ? 'blue' : 'green';
+  page.innerText = is_big_reward ? 'Reward 2' : 'Reward 1';
   util.append_page(page);
 
   setTimeout(() => {
     util.remove_page(page);
-    state.next(end_trial);
+    state.next(() => end_trial(trial_matrix));
   }, timeout_ms);
 }
 
-function error_feedback() {
+function error_feedback(trial_matrix: TrialMatrix) {
   const timeout_ms = 1000;
 
   const page = util.make_page();
   util.set_pixel_dimensions(page, 100, 100);
   page.style.backgroundColor = 'red';
+  page.innerText = 'Incorrect';
   util.append_page(page);
 
   setTimeout(() => {
     util.remove_page(page);
-    state.next(end_trial);
+    state.next(() => end_trial(trial_matrix));
   }, timeout_ms);
 }
 
-function end_trial() {
-  if (TRIAL_NUMBER < TRIAL_MATRIX.length) {
-    state.next(new_trial);
+function end_trial(trial_matrix: TrialMatrix) {
+  if (trial_matrix.index < trial_matrix.rows.length) {
+    state.next(() => new_trial(trial_matrix));
   } else {
     state.next(end_block);
   }
@@ -139,17 +208,17 @@ function end_trial() {
 
 function end_block() {
   const page = util.make_page();
-  util.set_pixel_dimensions(page, 100, 100);
-  page.innerText = 'End of block';
+  util.set_pixel_dimensions(page, 200, 100);
+  page.innerText = 'End of block. Press any key to continue to the next block.';
   page.style.color = 'white';
   util.append_page(page);
   util.one_shot_key_listener('keydown', _ => {
     util.remove_page(page);
-    state.next(init_block);
+    state.next(new_block);
   });
 }
 
 init_images();
 
-state.next(init_block);
+state.next(new_block);
 state.run();
