@@ -214,19 +214,19 @@ function end_trial(context: TaskContext) {
 }
 
 function end_block(context: TaskContext) {
-  const page = util.make_page();
-  util.set_pixel_dimensions(page, 400, 100);
-  page.innerText = `End of block ${context.block + 1}. Press Space to continue to the next block.`;
-  page.style.color = 'white';
-  util.append_page(page);
-  util.wait_for_space_bar(() => {
-    util.remove_page(page);    
-    if (context.block + 1 < config.num_learn_blocks) {
+  if (context.block + 1 < config.num_learn_blocks) {
+    const page = util.make_page();
+    util.set_pixel_dimensions(page, 400, 100);
+    page.innerText = `End of block ${context.block + 1}. Press Space to continue to the next block.`;
+    page.style.color = 'white';
+    util.append_page(page);
+    util.wait_for_space_bar(() => {
+      util.remove_page(page);
       state.next(new_block);
-    } else {
-      state.done();
-    }
-  });
+    });
+  } else {
+    state.done();
+  }
 }
 
 export function run(): Promise<void> {

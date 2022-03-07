@@ -66,21 +66,14 @@ function advance(matrix: TrialMatrix): TrialDescriptor {
 
 function initial_instructions() {
   const page = util.make_page();
-
-  const text = util.make_page();
-  text.style.color = 'white';
-  text.innerText = 'These are example instructions.';
-
-  const next_button = document.createElement('button');
-  next_button.innerText = 'Click next';
-  next_button.onclick = () => {
-    util.remove_page(page)
-    state.next(new_block);
-  }
-
-  page.appendChild(text);
-  page.appendChild(next_button);
+  page.style.color = 'white';
+  page.innerText = 'Nice work! Welcome to the BONUS ROUND. Press spacebar to continue.';
   util.append_page(page);
+
+  util.wait_for_space_bar(() => {
+    util.remove_page(page);
+    state.next(new_block);
+  });
 }
 
 function new_block() {

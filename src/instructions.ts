@@ -1,5 +1,6 @@
 import * as util from './util';
 import * as state from './state';
+import { config } from './config';
 
 function initial_instructions() {
   const page = util.make_page();
@@ -11,8 +12,12 @@ function initial_instructions() {
   const next_button = document.createElement('button');
   next_button.innerText = 'Click next';
   next_button.onclick = () => {
-    util.remove_page(page)
-    state.next(go_fullscreen);
+    util.remove_page(page);
+    if (config.go_fullscreen) {
+      state.next(go_fullscreen);
+    } else {
+      state.done();
+    }
   }
 
   page.appendChild(text);
