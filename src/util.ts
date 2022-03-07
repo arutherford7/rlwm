@@ -109,6 +109,12 @@ export function make_page(): HTMLDivElement {
   return page;
 }
 
+export function make_text_page(): HTMLDivElement {
+  const page = make_page();
+  page.style.color = 'white';
+  return page;
+}
+
 export function set_percent_dimensions<T extends HTMLElement>(el: T, w: number, h: number): void {
   el.style.width = `${w}%`;
   el.style.height = `${h}%`

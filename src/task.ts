@@ -73,8 +73,8 @@ function end_block() {
   if (BLOCK < config.num_learn_blocks) {
     const page = util.make_page();
     util.set_pixel_dimensions(page, 400, 100);
-    page.innerText = `End of block ${BLOCK}. Press Space to continue to the next block.`;
     page.style.color = 'white';
+    page.innerText = `End of block ${BLOCK}. You may press the spacebar whenever you are ready to begin the next block.`;
     util.append_page(page);
     util.wait_for_space_bar(() => {
       util.remove_page(page);

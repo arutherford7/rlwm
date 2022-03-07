@@ -2,6 +2,7 @@ import { init_images } from './image';
 import { init_db } from './database'
 import * as task from './task'
 import * as practice from './practice';
+import * as bonus_instructions from './bonus-instructions';
 import * as bonus from './bonus-task';
 import * as instructions from './instructions';
 import * as debrief from './debrief';
@@ -11,6 +12,7 @@ init_db(() => {
   instructions.run()
     .then(_ => practice.run())
     .then(_ => task.run())
+    .then(_ => bonus_instructions.run())
     .then(_ => bonus.run())
     .then(_ => debrief.run())
     .then(_ => {
