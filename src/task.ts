@@ -5,9 +5,9 @@ import { ImageDescriptor, ImageStimulus, get_images } from './image'
 
 export type TrialDescriptor = {
   image_descriptor: ImageDescriptor,
-  index: number,
+  trial_index: number,
   block_index: number,
-  reward: number
+  possible_reward: number
 }
 
 type TrialMatrix = {
@@ -73,9 +73,9 @@ function new_trial_matrix(block_index: number, image_set: ImageStimulus[], num_t
 
     rows.push({
       image_descriptor: image.descriptor,
-      index: i,
+      trial_index: i,
       block_index,
-      reward
+      possible_reward: reward
     });
   }
 
@@ -209,13 +209,13 @@ function respond(on_correct: ResponseCallback, on_incorrect: ResponseCallback, s
 
 function success_feedback(context: TaskContext, trial: TrialDescriptor, rt: number) {
   const timeout_ms = 1000;
-  const is_big_reward = trial.reward == 2;
+  const is_big_reward = trial.possible_reward == 2;
 
   const page = util.make_page();
   util.set_pixel_dimensions(page, 100, 100);
 
   page.style.backgroundColor = is_big_reward ? 'blue' : 'green';
-  page.innerText = `Reward ${trial.reward}. RT was ${rt} ms.`;
+  page.innerText = `Reward ${trial.possible_reward}. RT was ${rt} ms.`;
   util.append_page(page);
 
   setTimeout(() => {
