@@ -1,6 +1,7 @@
 import * as util from './util'
 import * as state from './state'
-import { push_trial_data } from './database';
+import { config } from './config';
+import { push_learn_trial_data } from './database';
 import { ImageDescriptor, ImageStimulus, get_images } from './image'
 
 export type TrialDescriptor = {
@@ -28,8 +29,6 @@ type TaskContext = {
 }
 
 let BLOCK = 0;
-let TRIALS_PER_BLOCK = 12;
-let NUM_BLOCKS = 1;
 
 function record_response(context: TaskContext, response: string, rt: number) {
   context.trial_data.response = response;
@@ -86,7 +85,7 @@ function new_trial_matrix(block_index: number, image_set: ImageStimulus[], num_t
 function new_block() {
   const block_index = BLOCK++;
   const images = get_images();
-  const num_trials = TRIALS_PER_BLOCK;
+  const num_trials = config.trials_per_learn_block;
   const image_set = new_image_set(images);
   const trial_matrix = new_trial_matrix(block_index, image_set, num_trials);
   const context = make_task_context(block_index, trial_matrix, images);
@@ -202,7 +201,7 @@ function error_feedback(context: TaskContext, stim: ImageStimulus, rt: number) {
 }
 
 function end_trial(context: TaskContext) {
-  push_trial_data({
+  push_learn_trial_data({
     trial_data: context.trial_data, 
     trial_desc: context.trial_matrix.rows[context.trial_matrix.index-1]
   });
@@ -222,7 +221,7 @@ function end_block(context: TaskContext) {
   util.append_page(page);
   util.wait_for_space_bar(() => {
     util.remove_page(page);    
-    if (context.block + 1 < NUM_BLOCKS) {
+    if (context.block + 1 < config.num_learn_blocks) {
       state.next(new_block);
     } else {
       state.done();

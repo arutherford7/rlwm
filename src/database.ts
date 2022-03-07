@@ -2,7 +2,9 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { Database, DatabaseReference, getDatabase, ref, update } from 'firebase/database';
 import { random_alpha_numeric_string } from './util';
-import { TrialData, TrialDescriptor } from './task';
+import { config } from './config';
+import * as task from './task';
+import * as bonus from './bonus-task';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAc9n98_3EfvFisQLTDD8snRWOsS4W9vpg",
@@ -14,26 +16,27 @@ const firebaseConfig = {
   databaseURL: 'https://rlwm-test-default-rtdb.firebaseio.com/',
 };
 
-const IS_DEBUG = true;
-const ENABLE_DB = false;
-
 let DB: Database | null = null;
-let DB_TRIAL_DATA: DatabaseReference | null = null;
+let DB_LEARN_TRIAL_DATA: DatabaseReference | null = null;
+let DB_BONUS_TRIAL_DATA: DatabaseReference | null = null;
 
-function get_trial_data_db() {
-  return DB_TRIAL_DATA;
+function get_learn_trial_data_db() {
+  return DB_LEARN_TRIAL_DATA;
+}
+
+function get_bonus_trial_data_db() {
+  return DB_BONUS_TRIAL_DATA;
 }
 
 function uuid_nest(data: object): object {
   return {[random_alpha_numeric_string(16)]: data};
 }
 
-export function push_trial_data(data: {trial_data: TrialData, trial_desc: TrialDescriptor}) {
-  if (!ENABLE_DB) {
+function push_data<T extends object>(db: DatabaseReference | null, data: T) {
+  if (!config.enable_db) {
     return;
   }
 
-  const db = get_trial_data_db();
   if (!db) {
     throw new Error('Database access has not been acquired.');
   }
@@ -41,15 +44,24 @@ export function push_trial_data(data: {trial_data: TrialData, trial_desc: TrialD
   update(db, uuid_nest(data));
 }
 
+export function push_learn_trial_data(data: {trial_data: task.TrialData, trial_desc: task.TrialDescriptor}) {
+  push_data(get_learn_trial_data_db(), data);
+}
+
+export function push_bonus_trial_data(data: {trial_data: bonus.TrialData, trial_desc: bonus.TrialDescriptor}) {
+  push_data(get_bonus_trial_data_db(), data);
+}
+
 export function init_db(on_success: () => void, on_err: (s: string) => void) {
-  if (!ENABLE_DB) {
+  if (!config.enable_db) {
     on_success();
     return;
   }
 
   const set_db_refs = (uuid: string) => {
-    uuid = IS_DEBUG ? 'debug-user' : uuid;
-    DB_TRIAL_DATA = ref(DB!, `trial-data/${uuid}`);
+    uuid = config.is_debug_db_user ? 'debug-user' : uuid;
+    DB_LEARN_TRIAL_DATA = ref(DB!, `learn-trial-data/${uuid}`);
+    DB_BONUS_TRIAL_DATA = ref(DB!, `bonus-trial-data/${uuid}`);
   };
 
   try {
