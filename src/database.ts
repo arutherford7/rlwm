@@ -15,7 +15,7 @@ const firebaseConfig = {
 };
 
 const IS_DEBUG = true;
-const ENABLE_DB = true;
+const ENABLE_DB = false;
 
 let DB: Database | null = null;
 let DB_TRIAL_DATA: DatabaseReference | null = null;
