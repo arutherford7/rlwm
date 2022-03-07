@@ -20,8 +20,38 @@ export function one_shot_key_listener(type: 'keydown' | 'keyup', cb: (e: Keyboar
   return abort;
 }
 
+export function wait_for_key(key: string, cb: () => void): () => boolean {
+  const listener: {value: null | ((e: KeyboardEvent) => void)} = {value: null};
+
+  const abort = () => {
+    if (listener.value !== null) {
+      window.removeEventListener('keydown', listener.value!);
+      listener.value = null;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  listener.value = function(e) {
+    if (e.key === key) {
+      abort();
+      cb();
+    }
+  }
+
+  window.addEventListener('keydown', listener.value);
+  return abort;
+}
+
 const BODY = configure_body();
 let PAGE_DEPTH = 0;
+
+export function enter_fullscreen(on_success: () => void, on_err: () => void): void {
+  BODY.requestFullscreen()
+    .then(_ => on_success())
+    .catch(_ => on_err());
+}
 
 export function append_page(page: HTMLDivElement) {
   if (PAGE_DEPTH !== 0) {

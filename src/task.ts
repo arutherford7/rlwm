@@ -35,31 +35,34 @@ function init_images() {
   const urls = [
     'https://imgur.com/gB0yuuy.png',
     'https://imgur.com/PpFTJzJ.png',
-    'https://imgur.com/gB0yuuy.png',
-    'https://imgur.com/PpFTJzJ.png',
-    'https://imgur.com/gB0yuuy.png',
-    'https://imgur.com/PpFTJzJ.png'
+    'https://i.imgur.com/CImnjiA.jpeg',
+    'https://i.imgur.com/mHxgmfF.jpeg',
+    'https://i.imgur.com/f9qsEWN.jpeg'    
   ];
   
   const p_large_rewards = [0.2, 0.5, 0.8];
+  const im_width = 200;
+  const im_height = 200;
 
   for (let i = 0; i < urls.length; i++) {
     const p_large_reward = util.uniform_array_sample(p_large_rewards);
     const desc = make_image_descriptor(urls[i], 0, '', p_large_reward);
     IMAGES.push({
-      image_element: make_image_element(urls[i]), 
+      image_element: make_image_element(urls[i], im_width, im_height), 
       descriptor: desc
     });
   }
 }
 
-function make_image_element(src: string): HTMLImageElement {
+function make_image_element(src: string, pxw: number, pxh: number): HTMLImageElement {
   const image = document.createElement('img');
   image.src = src;
+  util.set_pixel_dimensions(image, pxw, pxh);
   return image;
 }
 
-function make_image_descriptor(image_url: string, image_set: number, correct_response: string, p_large_reward: number): ImageDescriptor {
+function make_image_descriptor(image_url: string, image_set: number, 
+                               correct_response: string, p_large_reward: number): ImageDescriptor {
   return {image_url, correct_response, p_large_reward, image_set};
 }
 
@@ -71,11 +74,9 @@ function new_image_set(images: ImageStimulus[]): ImageStimulus[] {
   const image_set_size = util.uniform_array_sample(image_set_sizes);
 
   const image_set_perm = util.randperm(images.length);
-  const key_perm = util.randperm(correct_keys.length);
-
   for (let i = 0; i < image_set_size; i++) {
     const image_info = images[image_set_perm[i]];
-    image_info.descriptor.correct_response = correct_keys[key_perm[i]];
+    image_info.descriptor.correct_response = util.uniform_array_sample(correct_keys);
     result.push(image_info);
   }
 
@@ -96,14 +97,53 @@ function new_trial_matrix(image_set: ImageStimulus[], num_trials: number): Trial
   return {rows, index: 0};
 }
 
-function new_block() {
-  const num_trials = 3;
-  const image_set = new_image_set(IMAGES);
-  const trial_matrix = new_trial_matrix(image_set, num_trials);
-  state.next(() => present_image_set(trial_matrix, image_set));
+function initial_instructions() {
+  const page = util.make_page();
+
+  const text = util.make_page();
+  text.style.color = 'white';
+  text.innerText = 'These are example instructions.';
+
+  const next_button = document.createElement('button');
+  next_button.innerText = 'Click next';
+  next_button.onclick = () => {
+    util.remove_page(page)
+    state.next(go_fullscreen);
+  }
+
+  page.appendChild(text);
+  page.appendChild(next_button);
+  util.append_page(page);
 }
 
-function present_image_set(trial_matrix: TrialMatrix, images: ImageStimulus[]) {
+function go_fullscreen() {
+  const page = util.make_page();
+
+  const button = document.createElement('button');
+  button.innerText = 'Click to enter full screen.';
+  button.onclick = _ => {
+    util.enter_fullscreen(() => {
+      util.remove_page(page);
+      state.next(new_block);
+    }, () => {
+      // try again.
+      util.remove_page(page);
+      state.next(go_fullscreen);
+    });
+  }
+
+  page.appendChild(button);
+  util.append_page(page);
+}
+
+function new_block() {
+  const num_trials = 12;
+  const image_set = new_image_set(IMAGES);
+  const trial_matrix = new_trial_matrix(image_set, num_trials);
+  state.next(() => present_image_set(() => new_trial(trial_matrix), image_set));
+}
+
+function present_image_set(next: () => void, images: ImageStimulus[]) {
   const page = util.make_page();
   const text = util.make_page();
   text.style.color = 'white';
@@ -120,11 +160,9 @@ function present_image_set(trial_matrix: TrialMatrix, images: ImageStimulus[]) {
   page.appendChild(text);
   page.appendChild(image_container);
   util.append_page(page);
-  util.one_shot_key_listener('keydown', e => {
-    if (e.key === 'Enter') {
-      util.remove_page(page);
-      state.next(() => new_trial(trial_matrix));
-    }
+  util.wait_for_key('Enter', () => {
+    util.remove_page(page);
+    state.next(next);
   });
 }
 
@@ -138,17 +176,18 @@ function new_trial(trial_matrix: TrialMatrix) {
 
   const reward_rand = Math.random();
   const is_big_reward = reward_rand < trial.image_descriptor.p_large_reward;
-  state.next(() => respond(trial_matrix, image_stim, is_big_reward));
+
+  const on_correct = () => state.next(() => success_feedback(trial_matrix, is_big_reward));
+  const on_incorrect = () => state.next(() => error_feedback(image_stim, trial_matrix));  
+
+  state.next(() => respond(on_correct, on_incorrect, image_stim));
 }
 
-function respond(trial_matrix: TrialMatrix, stim: ImageStimulus, is_big_reward: boolean) {
+function respond(on_correct: () => void, on_incorrect: () => void, stim: ImageStimulus) {
   const page = util.make_page();
   util.set_percent_dimensions(page, 50, 50);
   util.append_page(page);
   page.appendChild(stim.image_element);
-
-  const on_correct = () => state.next(() => success_feedback(trial_matrix, is_big_reward));
-  const on_incorrect = () => state.next(() => error_feedback(trial_matrix));  
 
   const abort = util.one_shot_key_listener('keydown', e => {
     if (e.key === stim.descriptor.correct_response) {
@@ -183,13 +222,13 @@ function success_feedback(trial_matrix: TrialMatrix, is_big_reward: boolean) {
   }, timeout_ms);
 }
 
-function error_feedback(trial_matrix: TrialMatrix) {
+function error_feedback(stim: ImageStimulus, trial_matrix: TrialMatrix) {
   const timeout_ms = 1000;
 
   const page = util.make_page();
-  util.set_pixel_dimensions(page, 100, 100);
+  util.set_pixel_dimensions(page, 200, 200);
   page.style.backgroundColor = 'red';
-  page.innerText = 'Incorrect';
+  page.innerText = `Incorrect (was ${stim.descriptor.correct_response})`;
   util.append_page(page);
 
   setTimeout(() => {
@@ -220,5 +259,5 @@ function end_block() {
 
 init_images();
 
-state.next(new_block);
+state.next(initial_instructions);
 state.run();
