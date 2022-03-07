@@ -25,6 +25,10 @@ export function wait_for_space_bar(cb: () => void): () => boolean {
 }
 
 export function wait_for_key(key: string, cb: () => void): () => boolean {
+  return wait_for_one_of_keys([key], _ => cb());
+}
+
+export function wait_for_one_of_keys(keys: string[], cb: (key: string) => void): () => boolean {
   const listener: {value: null | ((e: KeyboardEvent) => void)} = {value: null};
 
   const abort = () => {
@@ -38,9 +42,18 @@ export function wait_for_key(key: string, cb: () => void): () => boolean {
   }
 
   listener.value = function(e) {
-    if (e.key === key) {
+    let found_key = false;
+    let key: string = '';
+    for (let i = 0; i < keys.length; i++) {
+      if (e.key === keys[i]) {
+        key = keys[i];
+        found_key = true;
+        break;
+      }
+    }
+    if (found_key) {
       abort();
-      cb();
+      cb(key);
     }
   }
 

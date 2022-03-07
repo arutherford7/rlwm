@@ -6,7 +6,7 @@ export function next(state: () => void): void {
   states.push(state);
 }
 
-export function stop() {
+function stop() {
   if (interval_id !== null) {
     clearInterval(interval_id);
     interval_id = null;

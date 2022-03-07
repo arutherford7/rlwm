@@ -3,7 +3,7 @@ import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { Database, DatabaseReference, getDatabase, ref, update } from 'firebase/database';
 import { random_alpha_numeric_string } from './util';
 import { config } from './config';
-import * as task from './task';
+import * as learn_trial from './learn-trial';
 import * as bonus from './bonus-task';
 
 const firebaseConfig = {
@@ -44,7 +44,7 @@ function push_data<T extends object>(db: DatabaseReference | null, data: T) {
   update(db, uuid_nest(data));
 }
 
-export function push_learn_trial_data(data: {trial_data: task.TrialData, trial_desc: task.TrialDescriptor}) {
+export function push_learn_trial_data(data: {trial_data: learn_trial.Result, trial_desc: learn_trial.TrialDescriptor}) {
   push_data(get_learn_trial_data_db(), data);
 }
 
