@@ -1,22 +1,12 @@
 import * as util from './util'
 import * as state from './state'
 import { push_trial_data } from './database';
-
-type ImageDescriptor = {
-  image_url: string;
-  correct_response: string;
-  p_large_reward: number,
-  image_set: number,
-  index: number
-};
-
-type ImageStimulus = {
-  image_element: HTMLImageElement,
-  descriptor: ImageDescriptor
-};
+import { ImageDescriptor, ImageStimulus, get_images } from './image'
 
 export type TrialDescriptor = {
-  image_descriptor: ImageDescriptor
+  image_descriptor: ImageDescriptor,
+  index: number,
+  block_index: number
 }
 
 type TrialMatrix = {
@@ -33,44 +23,11 @@ type TaskContext = {
   trial_matrix: TrialMatrix
   trial_data: TrialData,
   images: ImageStimulus[],
+  block: number
 }
 
-const IMAGES: ImageStimulus[] = [];
-
-export function init_images() {
-  const urls = [
-    'https://imgur.com/gB0yuuy.png',
-    'https://imgur.com/PpFTJzJ.png',
-    'https://i.imgur.com/CImnjiA.jpeg',
-    'https://i.imgur.com/mHxgmfF.jpeg',
-    'https://i.imgur.com/f9qsEWN.jpeg'    
-  ];
-  
-  const p_large_rewards = [0.2, 0.5, 0.8];
-  const im_width = 200;
-  const im_height = 200;
-
-  for (let i = 0; i < urls.length; i++) {
-    const p_large_reward = util.uniform_array_sample(p_large_rewards);
-    const desc = make_image_descriptor(urls[i], i, 0, '', p_large_reward);
-    IMAGES.push({
-      image_element: make_image_element(urls[i], im_width, im_height), 
-      descriptor: desc
-    });
-  }
-}
-
-function make_image_element(src: string, pxw: number, pxh: number): HTMLImageElement {
-  const image = document.createElement('img');
-  image.src = src;
-  util.set_pixel_dimensions(image, pxw, pxh);
-  return image;
-}
-
-function make_image_descriptor(image_url: string, index: number, image_set: number, 
-                               correct_response: string, p_large_reward: number): ImageDescriptor {
-  return {image_url, correct_response, p_large_reward, image_set, index};
-}
+let BLOCK = 0;
+let TRIALS_PER_BLOCK = 12;
 
 function record_response(context: TaskContext, response: string, rt: number) {
   context.trial_data.response = response;
@@ -81,9 +38,9 @@ function advance(matrix: TrialMatrix): TrialDescriptor {
   return matrix.rows[matrix.index++];
 }
 
-function make_task_context(trial_matrix: TrialMatrix, images: ImageStimulus[]): TaskContext {
+function make_task_context(block: number, trial_matrix: TrialMatrix, images: ImageStimulus[]): TaskContext {
   const td: TrialData = {rt: -1, response: ''};
-  return {trial_data: td, trial_matrix, images};
+  return {trial_data: td, trial_matrix, images, block};
 }
 
 function new_image_set(images: ImageStimulus[]): ImageStimulus[] {
@@ -103,13 +60,15 @@ function new_image_set(images: ImageStimulus[]): ImageStimulus[] {
   return result;
 }
 
-function new_trial_matrix(image_set: ImageStimulus[], num_trials: number): TrialMatrix {
+function new_trial_matrix(block_index: number, image_set: ImageStimulus[], num_trials: number): TrialMatrix {
   const rows: TrialDescriptor[] = [];
 
   for (let i = 0; i < num_trials; i++) {
     const image = util.uniform_array_sample(image_set);
     rows.push({
-      image_descriptor: image.descriptor
+      image_descriptor: image.descriptor,
+      index: i,
+      block_index
     });
   }
 
@@ -156,23 +115,30 @@ function go_fullscreen() {
 }
 
 function new_block() {
-  const num_trials = 12;
-  const image_set = new_image_set(IMAGES);
-  const trial_matrix = new_trial_matrix(image_set, num_trials);
-  const context = make_task_context(trial_matrix, IMAGES);
+  const block_index = BLOCK++;
+  const images = get_images();
+  const num_trials = TRIALS_PER_BLOCK;
+  const image_set = new_image_set(images);
+  const trial_matrix = new_trial_matrix(block_index, image_set, num_trials);
+  const context = make_task_context(block_index, trial_matrix, images);
   state.next(() => present_image_set(() => new_trial(context), image_set));
 }
 
 function present_image_set(next: () => void, images: ImageStimulus[]) {
   const page = util.make_page();
+  util.set_percent_dimensions(page, 75, 75);
+
   const text = util.make_page();
+  util.set_percent_dimensions(text, 75, 10);
   text.style.color = 'white';
-  text.innerText = 'These are the images for this block. Press Enter to proceed.';
+  text.innerText = 'These are the images for this block. Press Space to proceed.';
 
   const image_container = util.make_page();
   image_container.style.flexDirection = 'row';
+  util.set_percent_dimensions(image_container, 75, 50);
   for (let i = 0; i < images.length; i++) {
     const el = util.make_page();
+    util.set_percent_dimensions(el, 25, 100);
     el.appendChild(images[i].image_element);
     image_container.appendChild(el);
   }
@@ -180,7 +146,7 @@ function present_image_set(next: () => void, images: ImageStimulus[]) {
   page.appendChild(text);
   page.appendChild(image_container);
   util.append_page(page);
-  util.wait_for_key('Enter', () => {
+  util.wait_for_space_bar(() => {
     util.remove_page(page);
     state.next(next);
   });
@@ -277,17 +243,17 @@ function end_trial(context: TaskContext) {
   if (context.trial_matrix.index < context.trial_matrix.rows.length) {
     state.next(() => new_trial(context));
   } else {
-    state.next(end_block);
+    state.next(() => end_block(context));
   }
 }
 
-function end_block() {
+function end_block(context: TaskContext) {
   const page = util.make_page();
-  util.set_pixel_dimensions(page, 200, 100);
-  page.innerText = 'End of block. Press any key to continue to the next block.';
+  util.set_pixel_dimensions(page, 400, 100);
+  page.innerText = `End of block ${context.block + 1}. Press Space to continue to the next block.`;
   page.style.color = 'white';
   util.append_page(page);
-  util.one_shot_key_listener('keydown', _ => {
+  util.wait_for_space_bar(() => {
     util.remove_page(page);
     state.next(new_block);
   });

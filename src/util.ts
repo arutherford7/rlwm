@@ -20,6 +20,10 @@ export function one_shot_key_listener(type: 'keydown' | 'keyup', cb: (e: Keyboar
   return abort;
 }
 
+export function wait_for_space_bar(cb: () => void): () => boolean {
+  return wait_for_key(' ', cb);
+}
+
 export function wait_for_key(key: string, cb: () => void): () => boolean {
   const listener: {value: null | ((e: KeyboardEvent) => void)} = {value: null};
 

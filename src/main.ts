@@ -1,4 +1,5 @@
-import { run_task, init_images } from './task';
+import { init_images } from './image';
+import { run_task } from './task';
 import { init_db } from './database'
 
 init_db(() => {
