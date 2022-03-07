@@ -64,18 +64,6 @@ function advance(matrix: TrialMatrix): TrialDescriptor {
   return matrix.rows[matrix.index++];
 }
 
-// function initial_instructions() {
-//   const page = util.make_page();
-//   page.style.color = 'white';
-//   page.innerText = 'Nice work! Welcome to the BONUS ROUND. Press spacebar to continue.';
-//   util.append_page(page);
-
-//   util.wait_for_space_bar(() => {
-//     util.remove_page(page);
-//     state.next(new_block);
-//   });
-// }
-
 function new_block() {
   const page = util.make_page();
   page.style.color = 'white';
