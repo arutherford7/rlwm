@@ -6,7 +6,8 @@ import { ImageDescriptor, ImageStimulus, get_images } from './image'
 export type TrialDescriptor = {
   image_descriptor: ImageDescriptor,
   index: number,
-  block_index: number
+  block_index: number,
+  reward: number
 }
 
 type TrialMatrix = {
@@ -65,10 +66,16 @@ function new_trial_matrix(block_index: number, image_set: ImageStimulus[], num_t
 
   for (let i = 0; i < num_trials; i++) {
     const image = util.uniform_array_sample(image_set);
+
+    const reward_rand = Math.random();
+    const is_big_reward = reward_rand < image.descriptor.p_large_reward;
+    const reward = is_big_reward ? 2 : 1;
+
     rows.push({
       image_descriptor: image.descriptor,
       index: i,
-      block_index
+      block_index,
+      reward
     });
   }
 
@@ -121,17 +128,17 @@ function new_block() {
   const image_set = new_image_set(images);
   const trial_matrix = new_trial_matrix(block_index, image_set, num_trials);
   const context = make_task_context(block_index, trial_matrix, images);
-  state.next(() => present_image_set(() => new_trial(context), image_set));
+  state.next(() => present_image_set(context, () => new_trial(context), image_set));
 }
 
-function present_image_set(next: () => void, images: ImageStimulus[]) {
+function present_image_set(context: TaskContext, next: () => void, images: ImageStimulus[]) {
   const page = util.make_page();
   util.set_percent_dimensions(page, 75, 75);
 
   const text = util.make_page();
   util.set_percent_dimensions(text, 75, 10);
   text.style.color = 'white';
-  text.innerText = 'These are the images for this block. Press Space to proceed.';
+  text.innerText = `These are the images for block ${context.block+1}. Press Space to proceed.`;
 
   const image_container = util.make_page();
   image_container.style.flexDirection = 'row';
@@ -161,11 +168,8 @@ function new_trial(context: TaskContext) {
     descriptor: trial.image_descriptor
   };
 
-  const reward_rand = Math.random();
-  const is_big_reward = reward_rand < trial.image_descriptor.p_large_reward;
-
   const on_correct: ResponseCallback = (key, rt) => {
-    state.next(() => success_feedback(context, is_big_reward, rt));
+    state.next(() => success_feedback(context, trial, rt));
     record_response(context, key, rt);
   }
 
@@ -203,14 +207,15 @@ function respond(on_correct: ResponseCallback, on_incorrect: ResponseCallback, s
   }, 1000)
 }
 
-function success_feedback(context: TaskContext, is_big_reward: boolean, rt: number) {
+function success_feedback(context: TaskContext, trial: TrialDescriptor, rt: number) {
   const timeout_ms = 1000;
+  const is_big_reward = trial.reward == 2;
 
   const page = util.make_page();
   util.set_pixel_dimensions(page, 100, 100);
+
   page.style.backgroundColor = is_big_reward ? 'blue' : 'green';
-  const reward_text = is_big_reward ? 'Reward 2' : 'Reward 1';
-  page.innerText = `${reward_text}. RT was ${rt} ms.`;
+  page.innerText = `Reward ${trial.reward}. RT was ${rt} ms.`;
   util.append_page(page);
 
   setTimeout(() => {
