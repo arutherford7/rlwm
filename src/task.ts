@@ -1,11 +1,13 @@
 import * as util from './util'
 import * as state from './state'
+import { push_trial_data } from './database';
 
 type ImageDescriptor = {
   image_url: string;
   correct_response: string;
   p_large_reward: number,
-  image_set: number
+  image_set: number,
+  index: number
 };
 
 type ImageStimulus = {
@@ -13,25 +15,29 @@ type ImageStimulus = {
   descriptor: ImageDescriptor
 };
 
-type TrialDescriptor = {
-  image_element: HTMLImageElement,
+export type TrialDescriptor = {
   image_descriptor: ImageDescriptor
 }
 
-type TrialBlock = TrialDescriptor[];
-
 type TrialMatrix = {
-  rows: TrialBlock,
+  rows: TrialDescriptor[],
   index: number
 }
 
-function advance(matrix: TrialMatrix): TrialDescriptor {
-  return matrix.rows[matrix.index++];
+export type TrialData = {
+  rt: number,
+  response: string
+}
+
+type TaskContext = {
+  trial_matrix: TrialMatrix
+  trial_data: TrialData,
+  images: ImageStimulus[],
 }
 
 const IMAGES: ImageStimulus[] = [];
 
-function init_images() {
+export function init_images() {
   const urls = [
     'https://imgur.com/gB0yuuy.png',
     'https://imgur.com/PpFTJzJ.png',
@@ -46,7 +52,7 @@ function init_images() {
 
   for (let i = 0; i < urls.length; i++) {
     const p_large_reward = util.uniform_array_sample(p_large_rewards);
-    const desc = make_image_descriptor(urls[i], 0, '', p_large_reward);
+    const desc = make_image_descriptor(urls[i], i, 0, '', p_large_reward);
     IMAGES.push({
       image_element: make_image_element(urls[i], im_width, im_height), 
       descriptor: desc
@@ -61,16 +67,30 @@ function make_image_element(src: string, pxw: number, pxh: number): HTMLImageEle
   return image;
 }
 
-function make_image_descriptor(image_url: string, image_set: number, 
+function make_image_descriptor(image_url: string, index: number, image_set: number, 
                                correct_response: string, p_large_reward: number): ImageDescriptor {
-  return {image_url, correct_response, p_large_reward, image_set};
+  return {image_url, correct_response, p_large_reward, image_set, index};
+}
+
+function record_response(context: TaskContext, response: string, rt: number) {
+  context.trial_data.response = response;
+  context.trial_data.rt = rt;
+}
+
+function advance(matrix: TrialMatrix): TrialDescriptor {
+  return matrix.rows[matrix.index++];
+}
+
+function make_task_context(trial_matrix: TrialMatrix, images: ImageStimulus[]): TaskContext {
+  const td: TrialData = {rt: -1, response: ''};
+  return {trial_data: td, trial_matrix, images};
 }
 
 function new_image_set(images: ImageStimulus[]): ImageStimulus[] {
   const result: ImageStimulus[] = [];
 
   const image_set_sizes = [2, 3, 4, 5];
-  const correct_keys = ['ArrowUp', 'ArrowLeft', 'ArrowRight', 'ArrowDown'];
+  const correct_keys = ['c', 'v', 'b'];
   const image_set_size = util.uniform_array_sample(image_set_sizes);
 
   const image_set_perm = util.randperm(images.length);
@@ -89,7 +109,6 @@ function new_trial_matrix(image_set: ImageStimulus[], num_trials: number): Trial
   for (let i = 0; i < num_trials; i++) {
     const image = util.uniform_array_sample(image_set);
     rows.push({
-      image_element: image.image_element, 
       image_descriptor: image.descriptor
     });
   }
@@ -140,7 +159,8 @@ function new_block() {
   const num_trials = 12;
   const image_set = new_image_set(IMAGES);
   const trial_matrix = new_trial_matrix(image_set, num_trials);
-  state.next(() => present_image_set(() => new_trial(trial_matrix), image_set));
+  const context = make_task_context(trial_matrix, IMAGES);
+  state.next(() => present_image_set(() => new_trial(context), image_set));
 }
 
 function present_image_set(next: () => void, images: ImageStimulus[]) {
@@ -166,27 +186,32 @@ function present_image_set(next: () => void, images: ImageStimulus[]) {
   });
 }
 
-function new_trial(trial_matrix: TrialMatrix) {
-  const trial = advance(trial_matrix);
+type ResponseCallback = (key: string, rt: number) => void;
 
+function new_trial(context: TaskContext) {
+  const trial = advance(context.trial_matrix);
   const image_stim: ImageStimulus = {
-    image_element: trial.image_element,
+    image_element: context.images[trial.image_descriptor.index].image_element,
     descriptor: trial.image_descriptor
   };
 
   const reward_rand = Math.random();
   const is_big_reward = reward_rand < trial.image_descriptor.p_large_reward;
 
-  const on_correct = (rt: number) => {
-    state.next(() => success_feedback(trial_matrix, is_big_reward, rt));
+  const on_correct: ResponseCallback = (key, rt) => {
+    state.next(() => success_feedback(context, is_big_reward, rt));
+    record_response(context, key, rt);
   }
-  const on_incorrect = (rt: number) => {
-    state.next(() => error_feedback(image_stim, trial_matrix, rt));
+
+  const on_incorrect: ResponseCallback = (key, rt) => {
+    state.next(() => error_feedback(context, image_stim, rt));
+    record_response(context, key, rt);
   }
+
   state.next(() => respond(on_correct, on_incorrect, image_stim));
 }
 
-function respond(on_correct: (rt: number) => void, on_incorrect: (rt: number) => void, stim: ImageStimulus) {
+function respond(on_correct: ResponseCallback, on_incorrect: ResponseCallback, stim: ImageStimulus) {
   const page = util.make_page();
   util.set_percent_dimensions(page, 50, 50);
   util.append_page(page);
@@ -197,22 +222,22 @@ function respond(on_correct: (rt: number) => void, on_incorrect: (rt: number) =>
     const now = performance.now();
     if (e.key === stim.descriptor.correct_response) {
       util.remove_page(page);
-      on_correct(now - begin);
+      on_correct(e.key, now - begin);
     } else {
       util.remove_page(page);
-      on_incorrect(now - begin);
+      on_incorrect(e.key, now - begin);
     }
   });
 
   setTimeout(() => {
     if (abort()) {
       util.remove_page(page);
-      on_incorrect(NaN);
+      on_incorrect('', -1);
     }
   }, 1000)
 }
 
-function success_feedback(trial_matrix: TrialMatrix, is_big_reward: boolean, rt: number) {
+function success_feedback(context: TaskContext, is_big_reward: boolean, rt: number) {
   const timeout_ms = 1000;
 
   const page = util.make_page();
@@ -224,11 +249,11 @@ function success_feedback(trial_matrix: TrialMatrix, is_big_reward: boolean, rt:
 
   setTimeout(() => {
     util.remove_page(page);
-    state.next(() => end_trial(trial_matrix));
+    state.next(() => end_trial(context));
   }, timeout_ms);
 }
 
-function error_feedback(stim: ImageStimulus, trial_matrix: TrialMatrix, rt: number) {
+function error_feedback(context: TaskContext, stim: ImageStimulus, rt: number) {
   const timeout_ms = 1000;
 
   const page = util.make_page();
@@ -239,13 +264,18 @@ function error_feedback(stim: ImageStimulus, trial_matrix: TrialMatrix, rt: numb
 
   setTimeout(() => {
     util.remove_page(page);
-    state.next(() => end_trial(trial_matrix));
+    state.next(() => end_trial(context));
   }, timeout_ms);
 }
 
-function end_trial(trial_matrix: TrialMatrix) {
-  if (trial_matrix.index < trial_matrix.rows.length) {
-    state.next(() => new_trial(trial_matrix));
+function end_trial(context: TaskContext) {
+  push_trial_data({
+    trial_data: context.trial_data, 
+    trial_desc: context.trial_matrix.rows[context.trial_matrix.index-1]
+  });
+
+  if (context.trial_matrix.index < context.trial_matrix.rows.length) {
+    state.next(() => new_trial(context));
   } else {
     state.next(end_block);
   }
@@ -263,7 +293,7 @@ function end_block() {
   });
 }
 
-init_images();
-
-state.next(initial_instructions);
-state.run();
+export function run_task() {
+  state.next(initial_instructions);
+  state.run();
+}

@@ -128,3 +128,12 @@ export function randperm(n: number): number[] {
 
   return result;
 }
+
+export function random_alpha_numeric_string(n: number): string {
+  const alph = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < n; i++) {
+    result += alph[Math.floor(Math.random() * alph.length)];
+  }
+  return result;
+}
