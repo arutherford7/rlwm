@@ -177,43 +177,49 @@ function new_trial(trial_matrix: TrialMatrix) {
   const reward_rand = Math.random();
   const is_big_reward = reward_rand < trial.image_descriptor.p_large_reward;
 
-  const on_correct = () => state.next(() => success_feedback(trial_matrix, is_big_reward));
-  const on_incorrect = () => state.next(() => error_feedback(image_stim, trial_matrix));  
-
+  const on_correct = (rt: number) => {
+    state.next(() => success_feedback(trial_matrix, is_big_reward, rt));
+  }
+  const on_incorrect = (rt: number) => {
+    state.next(() => error_feedback(image_stim, trial_matrix, rt));
+  }
   state.next(() => respond(on_correct, on_incorrect, image_stim));
 }
 
-function respond(on_correct: () => void, on_incorrect: () => void, stim: ImageStimulus) {
+function respond(on_correct: (rt: number) => void, on_incorrect: (rt: number) => void, stim: ImageStimulus) {
   const page = util.make_page();
   util.set_percent_dimensions(page, 50, 50);
   util.append_page(page);
   page.appendChild(stim.image_element);
 
+  const begin = performance.now();
   const abort = util.one_shot_key_listener('keydown', e => {
+    const now = performance.now();
     if (e.key === stim.descriptor.correct_response) {
       util.remove_page(page);
-      on_correct();
+      on_correct(now - begin);
     } else {
       util.remove_page(page);
-      on_incorrect();
+      on_incorrect(now - begin);
     }
   });
 
   setTimeout(() => {
     if (abort()) {
       util.remove_page(page);
-      on_incorrect();
+      on_incorrect(NaN);
     }
   }, 1000)
 }
 
-function success_feedback(trial_matrix: TrialMatrix, is_big_reward: boolean) {
+function success_feedback(trial_matrix: TrialMatrix, is_big_reward: boolean, rt: number) {
   const timeout_ms = 1000;
 
   const page = util.make_page();
   util.set_pixel_dimensions(page, 100, 100);
   page.style.backgroundColor = is_big_reward ? 'blue' : 'green';
-  page.innerText = is_big_reward ? 'Reward 2' : 'Reward 1';
+  const reward_text = is_big_reward ? 'Reward 2' : 'Reward 1';
+  page.innerText = `${reward_text}. RT was ${rt} ms.`;
   util.append_page(page);
 
   setTimeout(() => {
@@ -222,13 +228,13 @@ function success_feedback(trial_matrix: TrialMatrix, is_big_reward: boolean) {
   }, timeout_ms);
 }
 
-function error_feedback(stim: ImageStimulus, trial_matrix: TrialMatrix) {
+function error_feedback(stim: ImageStimulus, trial_matrix: TrialMatrix, rt: number) {
   const timeout_ms = 1000;
 
   const page = util.make_page();
   util.set_pixel_dimensions(page, 200, 200);
   page.style.backgroundColor = 'red';
-  page.innerText = `Incorrect (was ${stim.descriptor.correct_response})`;
+  page.innerText = `Incorrect (was ${stim.descriptor.correct_response}). RT was ${rt} ms.`;
   util.append_page(page);
 
   setTimeout(() => {
