@@ -29,6 +29,7 @@ type TaskContext = {
 
 let BLOCK = 0;
 let TRIALS_PER_BLOCK = 12;
+let NUM_BLOCKS = 1;
 
 function record_response(context: TaskContext, response: string, rt: number) {
   context.trial_data.response = response;
@@ -80,45 +81,6 @@ function new_trial_matrix(block_index: number, image_set: ImageStimulus[], num_t
   }
 
   return {rows, index: 0};
-}
-
-function initial_instructions() {
-  const page = util.make_page();
-
-  const text = util.make_page();
-  text.style.color = 'white';
-  text.innerText = 'These are example instructions.';
-
-  const next_button = document.createElement('button');
-  next_button.innerText = 'Click next';
-  next_button.onclick = () => {
-    util.remove_page(page)
-    state.next(go_fullscreen);
-  }
-
-  page.appendChild(text);
-  page.appendChild(next_button);
-  util.append_page(page);
-}
-
-function go_fullscreen() {
-  const page = util.make_page();
-
-  const button = document.createElement('button');
-  button.innerText = 'Click to enter full screen.';
-  button.onclick = _ => {
-    util.enter_fullscreen(() => {
-      util.remove_page(page);
-      state.next(new_block);
-    }, () => {
-      // try again.
-      util.remove_page(page);
-      state.next(go_fullscreen);
-    });
-  }
-
-  page.appendChild(button);
-  util.append_page(page);
 }
 
 function new_block() {
@@ -259,12 +221,16 @@ function end_block(context: TaskContext) {
   page.style.color = 'white';
   util.append_page(page);
   util.wait_for_space_bar(() => {
-    util.remove_page(page);
-    state.next(new_block);
+    util.remove_page(page);    
+    if (context.block + 1 < NUM_BLOCKS) {
+      state.next(new_block);
+    } else {
+      state.done();
+    }
   });
 }
 
-export function run_task() {
-  state.next(initial_instructions);
-  state.run();
+export function run(): Promise<void> {
+  state.next(new_block);
+  return state.run();
 }
