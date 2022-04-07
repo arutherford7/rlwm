@@ -37,8 +37,8 @@ function present_image_set(context: Context, next: () => void) {
   const text = util.make_page();
   util.set_percent_dimensions(text, 75, 10);
   text.style.color = 'white';
-  // text.innerText = `These are the images for block ${context.block+1}. Press Space to proceed.`;
-  text.innerText = `These are the images for this block. Press Space to proceed.`;
+  text.innerText = `Take some time to identify the images for this block.
+  [Press spacebar to continue.]`;
 
   const image_container = util.make_page();
   image_container.style.flexDirection = 'row';

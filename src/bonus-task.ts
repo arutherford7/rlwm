@@ -67,7 +67,7 @@ function advance(matrix: TrialMatrix): TrialDescriptor {
 function new_block() {
   const page = util.make_page();
   page.style.color = 'white';
-  page.innerText = 'example new block';
+  page.innerText = 'Press spacebar to begin.';
   util.append_page(page);
 
   const trial_matrix = make_trial_matrix(config.num_bonus_trials);

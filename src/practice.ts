@@ -7,7 +7,7 @@ import { config } from './config';
 
 function new_block() {
   const images = get_images();
-  const image_set = new_image_set(images);
+  const image_set = new_image_set(images, 0); //  @TODO: Use special index for practice set.
   const trial_matrix = new_trial_matrix(0, image_set, config.num_practice_trials);
 
   const params: learn_block.Params = {
@@ -24,16 +24,12 @@ function new_block() {
 function debrief() {
   const page = util.make_page();
   page.style.color = 'white';
-  page.innerText = 'You are now ready to begin the experiment. You may press the spacebar to begin. Press R to repeat the practice round.';
+  page.innerText = 'End of block 0. [Press spacebar to continue]';
   util.append_page(page);
 
-  util.wait_for_one_of_keys([' ', 'r'], key => {
+  util.wait_for_space_bar(() => {
     util.remove_page(page);
-    if (key === ' ') {
-      state.done();
-    } else {
-      state.next(new_block);
-    }
+    state.done();
   });
 }
 

@@ -38,22 +38,32 @@ function make_pages() {
   })();
   (() => {
     const page = util.make_text_page();
-    page.innerText = `There will be 12 rounds of this game, called blocks, and in each block you will see different pictures appear on the screen one at a time.`;
+    page.innerText = `In this experiment, you will see an image on the screen. You need to respond to each image by pressing one of the three buttons on the keyboard, C, V or B, with your dominant hand.\nPress SPACEBAR to go through the instructions.`;
     disp.push(page);
   })();
   (() => {
     const page = util.make_text_page();
-    page.innerText = 'Your job is to figure out which key--using C, V and B only--corresponds to which picture.'
+    page.innerText = `Your goal is to figure out which button makes you win for each image. You will have a few seconds to respond. Please respond to every image as quickly and accurately as possible. If you do not respond, the trial will be counted as a loss.\nPress SPACEBAR to go through the instructions.`
     disp.push(page);
   })();
   (() => {
     const page = util.make_text_page();
-    page.innerText = 'When you match the right key with the right picture, you will earn either 1 or 2 points. You will be guessing at first, but once you get a match right, remember which button you pressed so that you can press it the next time that picture appears.';
+    page.innerText = `If you select the correct button, you will gain points. You can gain either 1 or 2 points. The computer assigns points randomly, but only if you selected the correct button! You may receive a bonus of up to $5 monetary reward, based on how many points you win!\nPress SPACEBAR to go through the instructions.`;
     disp.push(page);
   })();
   (() => {
     const page = util.make_text_page();
-    page.innerText = 'It is important you do your best to get as many matches correct as possible, because the more points you earn, the more bonus money you will make in this game.'
+    page.innerText = `After the practice section, there will be 12 short blocks. You can rest between each block. At the beginning of each block, you will be shown the set of images for that block. Take some time to identify them correctly.\nPress SPACEBAR to go through the instructions.`
+    disp.push(page);
+  })();
+  (() => {
+    const page = util.make_text_page();
+    page.innerText = `Note the following important rules: 
+    1. There is ONLY ONE correct response for each image. 
+    2. One response button MAY be correct for multiple images, or not be correct for any image. 
+    3. Within each block, the correct response for each image will not change. 
+    4. The more correct responses you give, the faster you will finish the block. 
+    Press SPACEBAR to go through the instructions.`
     disp.push(page);
   })();
 
@@ -63,7 +73,7 @@ function make_pages() {
 function run_confirm(page_elements: HTMLDivElement[]) {  
   state.next(() => {
     const page = util.make_text_page();
-    page.innerText = 'If you understand these instructions, please press the spacebar to begin a practice round. Or press R to repeat these instructions.';
+    page.innerText = `Press R to read the instructions again. Press a key to begin practice.`;
     util.append_page(page);
 
     util.wait_for_one_of_keys(['r', ' '], key => {

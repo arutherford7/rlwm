@@ -7,17 +7,24 @@ import { push_learn_trial_data } from './database';
 import { ImageStimulus, get_images } from './image'
 
 let BLOCK = 0;
+let BLOCK_IMAGE_PERMUTATION: number[] = [];
 
-export function new_image_set(images: ImageStimulus[]): ImageStimulus[] {
+export function new_image_set(images: ImageStimulus[], image_set_index: number): ImageStimulus[] {
   const result: ImageStimulus[] = [];
 
   const image_set_sizes = [2, 3, 4, 5];
   const correct_keys = ['c', 'v', 'b'];
   const image_set_size = util.uniform_array_sample(image_set_sizes);
 
-  const image_set_perm = util.randperm(images.length);
+  let image_subset = images.filter(im => im.descriptor.image_set === image_set_index);
+  if (image_subset.length === 0) {
+    console.error(`No images matched ${image_set_index}`);
+    image_subset = images;
+  }
+
+  const image_set_perm = util.randperm(image_subset.length);
   for (let i = 0; i < image_set_size; i++) {
-    const image_info = images[image_set_perm[i]];
+    const image_info = image_subset[image_set_perm[i]];
     image_info.descriptor.correct_response = util.uniform_array_sample(correct_keys);
     result.push(image_info);
   }
@@ -48,9 +55,23 @@ export function new_trial_matrix(block_index: number, image_set: ImageStimulus[]
 
 function new_block() {
   const block_index = BLOCK++;
+  if (block_index === 0) {
+    BLOCK_IMAGE_PERMUTATION = config.randomize_image_set_order ? 
+      util.randperm(config.num_learn_blocks) : 
+      util.iota(config.num_learn_blocks, 0);
+  }
+
+  let image_set_index: number;
+  if (block_index >= BLOCK_IMAGE_PERMUTATION.length) {
+    console.error(`Out of bounds image set index: ${block_index}.`);
+    image_set_index = 0;
+  } else {
+    image_set_index = BLOCK_IMAGE_PERMUTATION[block_index];
+  }
+
   const images = get_images();
   const num_trials = config.num_trials_per_learn_block;
-  const image_set = new_image_set(images);
+  const image_set = new_image_set(images, image_set_index);
   const trial_matrix = new_trial_matrix(block_index, image_set, num_trials);
 
   const params: learn_block.Params = {
