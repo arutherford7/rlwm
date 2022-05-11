@@ -152,6 +152,14 @@ export function randperm(n: number): number[] {
   return result;
 }
 
+export function permute<T>(a: T[], ind: number[]): T[] {
+  const result: T[] = [];
+  for (let i = 0; i < ind.length; i++) {
+    result.push(a[ind[i]]);
+  }
+  return result;
+}
+
 export function random_alpha_numeric_string(n: number): string {
   const alph = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';

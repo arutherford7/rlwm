@@ -4,7 +4,7 @@ import * as learn_trial from './learn-trial';
 import * as learn_block from './learn-block';
 import { config } from './config';
 import { push_learn_trial_data } from './database';
-import { ImageStimulus, get_images } from './image'
+import { ImageStimulus, get_images, get_num_sets } from './image'
 
 let BLOCK = 0;
 let BLOCK_IMAGE_PERMUTATION: number[] = [];
@@ -23,7 +23,7 @@ export function new_image_set(images: ImageStimulus[], image_set_index: number):
   }
 
   const image_set_perm = util.randperm(image_subset.length);
-  for (let i = 0; i < image_set_size; i++) {
+  for (let i = 0; i < Math.min(image_set_size, image_subset.length); i++) {
     const image_info = image_subset[image_set_perm[i]];
     image_info.descriptor.correct_response = util.uniform_array_sample(correct_keys);
     result.push(image_info);
@@ -53,12 +53,28 @@ export function new_trial_matrix(block_index: number, image_set: ImageStimulus[]
   return rows;
 }
 
+function init_block_image_permutation() {
+  if (config.randomize_image_set_order) {
+    const order = util.randperm(get_num_sets());
+    let n = config.num_learn_blocks;
+    if (order.length < n) {
+      console.error(`Cannot request ${config.num_learn_blocks} blocks because there are only ${order.length} image sets.`);
+      n = order.length;
+    }
+
+    BLOCK_IMAGE_PERMUTATION = new Array(n);
+    for (let i = 0; i < n; i++) {
+      BLOCK_IMAGE_PERMUTATION[i] = order[i];
+    }
+  } else {
+    BLOCK_IMAGE_PERMUTATION = util.iota(config.num_learn_blocks, 0);
+  }
+}
+
 function new_block() {
   const block_index = BLOCK++;
   if (block_index === 0) {
-    BLOCK_IMAGE_PERMUTATION = config.randomize_image_set_order ? 
-      util.randperm(config.num_learn_blocks) : 
-      util.iota(config.num_learn_blocks, 0);
+    init_block_image_permutation();
   }
 
   let image_set_index: number;

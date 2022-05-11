@@ -2,12 +2,12 @@ import * as state from './state';
 import * as util from './util';
 import { new_image_set, new_trial_matrix } from './task';
 import * as learn_block from './learn-block';
-import { get_images } from './image';
+import { get_training_images } from './image';
 import { config } from './config';
 
 function new_block() {
-  const images = get_images();
-  const image_set = new_image_set(images, 0); //  @TODO: Use special index for practice set.
+  const images = get_training_images();
+  const image_set = new_image_set(images, 0);
   const trial_matrix = new_trial_matrix(0, image_set, config.num_practice_trials);
 
   const params: learn_block.Params = {
