@@ -28,7 +28,7 @@ type Context = {
 type ResponseCallback = (key: string, rt: number) => void;
 
 const FEEDBACK_MS = 1000;
-const RESPONSE_WINDOW_MS = 1000;
+const RESPONSE_WINDOW_MS = 1400;
 
 function record_response(result: Result, response: string, rt: number) {
   result.response = response;
