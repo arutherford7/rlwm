@@ -29,6 +29,8 @@ type ResponseCallback = (key: string, rt: number) => void;
 
 const FEEDBACK_MS = 1000;
 const RESPONSE_WINDOW_MS = 1400;
+const DEBUG_DISPLAY = false;
+const FEEDBACK_FONT_SIZE = 30;
 
 function record_response(result: Result, response: string, rt: number) {
   result.response = response;
@@ -88,8 +90,14 @@ function success_feedback(context: Context, rt: number) {
   const page = util.make_page();
   util.set_pixel_dimensions(page, 100, 100);
 
-  page.style.backgroundColor = is_big_reward ? 'blue' : 'green';
-  page.innerText = `Reward ${trial.possible_reward}. RT was ${rt} ms.`;
+  if (DEBUG_DISPLAY) {
+    page.style.backgroundColor = is_big_reward ? 'blue' : 'green';
+    page.innerText = `Reward ${trial.possible_reward}. RT was ${rt} ms.`;
+  } else {
+    page.innerText = `+${trial.possible_reward}`;
+    page.style.color = is_big_reward ? 'blue' : 'green';
+    page.style.fontSize = `${FEEDBACK_FONT_SIZE}px`;
+  }
   util.append_page(page);
 
   setTimeout(() => {
@@ -103,8 +111,15 @@ function error_feedback(context: Context, rt: number) {
 
   const page = util.make_page();
   util.set_pixel_dimensions(page, 200, 200);
-  page.style.backgroundColor = 'red';
-  page.innerText = `Incorrect (was ${stim.descriptor.correct_response}). RT was ${rt} ms.`;
+
+  if (DEBUG_DISPLAY) {
+    page.style.backgroundColor = 'red';
+    page.innerText = `Incorrect (was ${stim.descriptor.correct_response}). RT was ${rt} ms.`;
+  } else {
+    page.innerText = '0';
+    page.style.color = 'red';
+    page.style.fontSize = `${FEEDBACK_FONT_SIZE}px`;
+  }
   util.append_page(page);
 
   setTimeout(() => {
