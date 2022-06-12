@@ -5,6 +5,8 @@ import * as learn_block from './learn-block';
 import { config } from './config';
 import { push_learn_trial_data } from './database';
 import { ImageStimulus, get_images, get_num_sets } from './image'
+import { DESIGN_MATRICES } from '../data/designs0';
+import { DesignMatrix } from '../data/design';
 
 let BLOCK = 0;
 let BLOCK_IMAGE_PERMUTATION: number[] = [];
@@ -53,6 +55,50 @@ export function new_trial_matrix(block_index: number, image_set: ImageStimulus[]
   return rows;
 }
 
+function find_design_matrix(subject_index: number, session_index: number): DesignMatrix {
+  const target_matrix = DESIGN_MATRICES.filter(m => m.session_number == session_index+1 && m.subject_number == subject_index+1);
+  if (target_matrix.length !== 1) {
+    throw new Error(`Expected 1 match for subject ${subject_index} and session ${session_index}; got ${target_matrix.length}`);
+  }
+  return target_matrix[0];
+}
+
+function new_image_set_from_design_matrix(images: ImageStimulus[], mat: DesignMatrix, block_index: number): ImageStimulus[] {
+  const image_set = mat.image_sets[block_index];
+  const image_numbers = mat.image_numbers[block_index];
+  const image_subset = image_numbers.map(num => {
+    const matches = images.filter(im => im.descriptor.image_set+1 == image_set && im.descriptor.image_number+1 == num);
+    if (matches.length !== 1) {
+      throw new Error(`Expected 1 match for set ${image_set} and image ${num}; got ${matches.length}`);
+    }
+    return matches[0];
+  });
+  return image_subset;
+}
+
+function new_trial_matrix_from_design_matrix(image_set: ImageStimulus[], mat: DesignMatrix, block_index: number): learn_trial.TrialDescriptor[] {
+  const rows: learn_trial.TrialDescriptor[] = [];
+  const image_seq = mat.image_sequences[block_index];
+  const corr_responses = mat.correct_responses[block_index];
+  const p_rewards = mat.p_large_rewards[block_index];
+
+  for (let i = 0; i < image_seq.length; i++) {
+    const image = image_set[image_seq[i]];
+    const desc = {...image.descriptor};
+    desc.correct_response = corr_responses[i];
+    desc.p_large_reward = p_rewards[i];
+
+    rows.push({
+      image_descriptor: desc,
+      trial_index: i,
+      block_index,
+      possible_reward: Math.random() < desc.p_large_reward ? 2 : 1
+    });
+  }
+
+  return rows;
+}
+
 function init_block_image_permutation() {
   if (config.randomize_image_set_order) {
     const order = util.randperm(get_num_sets());
@@ -77,18 +123,29 @@ function new_block() {
     init_block_image_permutation();
   }
 
-  let image_set_index: number;
-  if (block_index >= BLOCK_IMAGE_PERMUTATION.length) {
-    console.error(`Out of bounds image set index: ${block_index}.`);
-    image_set_index = 0;
-  } else {
-    image_set_index = BLOCK_IMAGE_PERMUTATION[block_index];
-  }
-
+  let trial_matrix: learn_trial.TrialDescriptor[];
+  let image_set: ImageStimulus[];
   const images = get_images();
-  const num_trials = config.num_trials_per_learn_block;
-  const image_set = new_image_set(images, image_set_index);
-  const trial_matrix = new_trial_matrix(block_index, image_set, num_trials);
+
+  if (!config.use_design_matrices) {
+    let image_set_index: number;
+    if (block_index >= BLOCK_IMAGE_PERMUTATION.length) {
+      console.error(`Out of bounds image set index: ${block_index}.`);
+      image_set_index = 0;
+    } else {
+      image_set_index = BLOCK_IMAGE_PERMUTATION[block_index];
+    }
+
+    image_set = new_image_set(images, image_set_index);
+    trial_matrix = new_trial_matrix(block_index, image_set, config.num_trials_per_learn_block);
+
+  } else {
+    const subject_index = 0;
+    const session_index = 0;
+    const design = find_design_matrix(subject_index, session_index);
+    image_set = new_image_set_from_design_matrix(images, design, block_index);
+    trial_matrix = new_trial_matrix_from_design_matrix(image_set, design, block_index);
+  }
 
   const params: learn_block.Params = {
     trials: trial_matrix,
