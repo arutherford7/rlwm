@@ -60,6 +60,11 @@ js.subject_number = subj;
 js.session_number = session;
 js.test_trials = cellfun( @(x) to_test_trial_matrix(x, rewards), mat.testStimsSeqs );
 
+im_sets = [js.test_trials.image_sets];
+im_nums = [js.test_trials.image_numbers];
+assert( all(ismember(im_sets, js.image_sets)) );
+assert( all(ismember(im_nums, horzcat(js.image_numbers{:}))) );
+
 end
 
 function m = to_test_trial_matrix(element, rewards)
