@@ -1,5 +1,7 @@
 export const config = {
-  num_practice_trials: 4,
+  min_num_practice_trials: 10,
+  max_num_practice_trials: 12,
+  practice_correct_threshold: 0.8,
   num_learn_blocks: 1,
   num_trials_per_learn_block: 4,
   use_design_matrices: true,

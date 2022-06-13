@@ -151,11 +151,13 @@ function new_block() {
     trials: trial_matrix,
     image_set: image_set,
     all_images: images,
+    present_image_set: true,
     on_trial_complete: (result, trial_desc) => {
       push_learn_trial_data({
         trial_data: result,
         trial_desc: trial_desc
       });
+      return true;
     },
     on_complete: () => state.next(end_block)
   }

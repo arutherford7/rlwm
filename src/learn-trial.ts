@@ -17,7 +17,8 @@ export type Params = {
 
 export type Result = {
   rt: number,
-  response: string
+  response: string,
+  correct: boolean
 }
 
 type Context = {
@@ -32,26 +33,27 @@ const RESPONSE_WINDOW_MS = 1400;
 const DEBUG_DISPLAY = false;
 const FEEDBACK_FONT_SIZE = 30;
 
-function record_response(result: Result, response: string, rt: number) {
+function record_response(result: Result, response: string, rt: number, correct: boolean) {
   result.response = response;
   result.rt = rt;
+  result.correct = correct;
 }
 
-function make_result(rt: number, response: string): Result {
-  return {rt, response};
+function make_result(rt: number, response: string, correct: boolean): Result {
+  return {rt, response, correct};
 }
 
 export function trial(params: Params) {
-  const context: Context = {params, result: make_result(-1, '')};
+  const context: Context = {params, result: make_result(-1, '', false)};
 
   const on_correct: ResponseCallback = (key, rt) => {
     state.next(() => success_feedback(context, rt));
-    record_response(context.result, key, rt);
+    record_response(context.result, key, rt, true);
   }
 
   const on_incorrect: ResponseCallback = (key, rt) => {
     state.next(() => error_feedback(context, rt));
-    record_response(context.result, key, rt);
+    record_response(context.result, key, rt, false);
   }
 
   state.next(() => respond(on_correct, on_incorrect, params.stimulus));

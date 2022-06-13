@@ -17,7 +17,8 @@ export type Params = {
   trials: learn_trial.TrialDescriptor[],
   image_set: ImageStimulus[],
   all_images: ImageStimulus[],
-  on_trial_complete: (result: learn_trial.Result, trial_desc: learn_trial.TrialDescriptor) => void,
+  present_image_set: boolean,
+  on_trial_complete: (result: learn_trial.Result, trial_desc: learn_trial.TrialDescriptor) => boolean,
   on_complete: () => void
 };
 
@@ -27,7 +28,12 @@ function advance(matrix: TrialMatrix): learn_trial.TrialDescriptor {
 
 export function run(params: Params) {
   const context: Context = {params, trial_matrix: {rows: params.trials, index: 0}};
-  state.next(() => present_image_set(context, () => new_trial(context)));
+  const first_trial = () => new_trial(context);
+  if (params.present_image_set) {
+    state.next(() => present_image_set(context, first_trial));
+  } else {
+    state.next(first_trial);
+  }
 }
 
 function present_image_set(context: Context, next: () => void) {
@@ -71,9 +77,8 @@ function new_trial(context: Context) {
     stimulus: image_stim,
     trial_desc: trial,
     on_complete: (result, trial_desc) => {
-      context.params.on_trial_complete(result, trial_desc);
-
-      if (context.trial_matrix.index < context.trial_matrix.rows.length) {
+      const proceed = context.params.on_trial_complete(result, trial_desc);
+      if (proceed && context.trial_matrix.index < context.trial_matrix.rows.length) {
         state.next(() => new_trial(context));
       } else {
         context.params.on_complete();
