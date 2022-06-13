@@ -2,7 +2,7 @@ import * as util from './util'
 import * as state from './state'
 import { ImageDescriptor, get_images } from './image';
 import { push_bonus_trial_data } from './database';
-import { config } from './config';
+import { DesignMatrix } from '../data/design';
 
 export type TrialDescriptor = {
   left_image: ImageDescriptor,
@@ -10,13 +10,17 @@ export type TrialDescriptor = {
   trial_index: number
 };
 
-type TrialMatrix = {
+export type TrialMatrix = {
   rows: TrialDescriptor[],
   index: number
 };
 
 export type TrialData = {
   response: string
+};
+
+export type Params = {
+  trial_matrix: TrialMatrix
 };
 
 type TaskContext = {
@@ -36,7 +40,32 @@ function record_response(context: TaskContext, response: string) {
   context.trial_data.response = response;
 }
 
-function make_trial_matrix(num_trials: number): TrialMatrix {
+export function make_trial_matrix_from_design_matrix(design: DesignMatrix): TrialMatrix {
+  const images = get_images();
+
+  const find_image_desc = (set: number, number: number) => {
+    const im = images.filter(im => im.descriptor.image_set+1 === set && im.descriptor.image_number+1 === number);
+    if (im.length === 1) {
+      return im[0].descriptor;
+    } else {
+      throw new Error(`Expected 1 match for set ${set} and number ${number}; got ${im.length}`);
+    }
+  }
+
+  const rows: TrialDescriptor[] = [];
+  for (let i = 0; i < design.test_trials.length; i++) {
+    const test_trial = design.test_trials[i];
+    rows.push({
+      left_image: find_image_desc(test_trial.image_sets[0], test_trial.image_numbers[0]),
+      right_image: find_image_desc(test_trial.image_sets[1], test_trial.image_numbers[1]),
+      trial_index: i
+    });
+  }
+
+  return {rows, index: 0};
+}
+
+export function make_trial_matrix(num_trials: number): TrialMatrix {
   const images = get_images();
   if (images.length < 2) {
     throw new Error('Not enough images.');
@@ -64,13 +93,14 @@ function advance(matrix: TrialMatrix): TrialDescriptor {
   return matrix.rows[matrix.index++];
 }
 
-function new_block() {
+function new_block(params: Params) {
   const page = util.make_page();
   page.style.color = 'white';
   page.innerText = 'Press spacebar to begin.';
   util.append_page(page);
 
-  const trial_matrix = make_trial_matrix(config.num_bonus_trials);
+  // const trial_matrix = make_trial_matrix(config.num_bonus_trials);
+  const trial_matrix = params.trial_matrix;
   const context = make_task_context(trial_matrix);
 
   util.wait_for_space_bar(() => {
@@ -118,7 +148,7 @@ function end_trial(context: TaskContext) {
   }
 }
 
-export function run(): Promise<void> {
-  state.next(new_block);
+export function run(params: Params): Promise<void> {
+  state.next(() => new_block(params));
   return state.run();
 }

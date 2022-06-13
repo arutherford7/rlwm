@@ -58,5 +58,49 @@ js.num_blocks = numel( mat.blocks );
 js.image_set_sizes = mat.blocks;
 js.subject_number = subj;
 js.session_number = session;
+js.test_trials = cellfun( @(x) to_test_trial_matrix(x, rewards), mat.testStimsSeqs );
+
+end
+
+function m = to_test_trial_matrix(element, rewards)
+
+%{
+ each cell in tst_stims ha
+lines:
+- 1 test trial number
+- 2. value (1-3) = AMB (1: 80%, M:50%, B: 20%)
+- 3. set size
+- 4. folder number
+- 5. image number in folder
+- 6. block number
+%}
+%TRIALCODE=[LEFT,RIGHT];
+
+%{
+
+% Define the correct choice
+    correct_choice = []; 
+    if  LEFT(2,1) == RIGHT(2,1) %if equal - this will catch it if true
+        correct_choice = .5; %Both have equal value
+    elseif LEFT(2,1)<RIGHT(2,1)
+        correct_choice = left_key;
+    else
+        correct_choice = right_key;
+    end
+
+%}
+
+m = struct();
+m.p_large_rewards = rewards(element(2, :));
+m.image_sets = element(4, :);
+m.image_numbers = element(5, :);
+
+if ( element(2, 1) == element(2, 2))
+  m.correct_options = [0, 1];
+elseif ( element(2, 1) < element(2, 2) )
+  m.correct_options = [0, 0];
+else
+  m.correct_options = [1, 1];
+end
 
 end

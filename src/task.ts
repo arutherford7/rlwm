@@ -5,7 +5,6 @@ import * as learn_block from './learn-block';
 import { config } from './config';
 import { push_learn_trial_data } from './database';
 import { ImageStimulus, get_images, get_num_sets } from './image'
-import { DESIGN_MATRICES } from '../data/designs0';
 import { DesignMatrix } from '../data/design';
 
 let BLOCK = 0;
@@ -53,14 +52,6 @@ export function new_trial_matrix(block_index: number, image_set: ImageStimulus[]
   }
 
   return rows;
-}
-
-function find_design_matrix(subject_index: number, session_index: number): DesignMatrix {
-  const target_matrix = DESIGN_MATRICES.filter(m => m.session_number == session_index+1 && m.subject_number == subject_index+1);
-  if (target_matrix.length !== 1) {
-    throw new Error(`Expected 1 match for subject ${subject_index} and session ${session_index}; got ${target_matrix.length}`);
-  }
-  return target_matrix[0];
 }
 
 function new_image_set_from_design_matrix(images: ImageStimulus[], mat: DesignMatrix, block_index: number): ImageStimulus[] {
@@ -117,7 +108,7 @@ function init_block_image_permutation() {
   }
 }
 
-function new_block() {
+function new_block(design: DesignMatrix) {
   const block_index = BLOCK++;
   if (block_index === 0) {
     init_block_image_permutation();
@@ -140,9 +131,6 @@ function new_block() {
     trial_matrix = new_trial_matrix(block_index, image_set, config.num_trials_per_learn_block);
 
   } else {
-    const subject_index = 0;
-    const session_index = 0;
-    const design = find_design_matrix(subject_index, session_index);
     image_set = new_image_set_from_design_matrix(images, design, block_index);
     trial_matrix = new_trial_matrix_from_design_matrix(image_set, design, block_index);
   }
@@ -159,13 +147,13 @@ function new_block() {
       });
       return true;
     },
-    on_complete: () => state.next(end_block)
+    on_complete: () => state.next(() => end_block(design))
   }
 
   state.next(() => learn_block.run(params));
 }
 
-function end_block() {
+function end_block(design: DesignMatrix) {
   if (BLOCK < config.num_learn_blocks) {
     const page = util.make_page();
     util.set_pixel_dimensions(page, 400, 100);
@@ -174,14 +162,14 @@ function end_block() {
     util.append_page(page);
     util.wait_for_space_bar(() => {
       util.remove_page(page);
-      state.next(new_block);
+      state.next(() => new_block(design));
     });
   } else {
     state.done();
   }
 }
 
-export function run(): Promise<void> {
-  state.next(new_block);
+export function run(design: DesignMatrix): Promise<void> {
+  state.next(() => new_block(design));
   return state.run();
 }
