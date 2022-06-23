@@ -3,8 +3,16 @@ import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { Database, DatabaseReference, getDatabase, ref, update } from 'firebase/database';
 import { random_alpha_numeric_string } from './util';
 import { config } from './config';
+import { DesignMatrix } from '../data/design';
 import * as learn_trial from './learn-trial';
 import * as bonus from './bonus-task';
+
+export type DesignData = {
+  design_matrix: DesignMatrix,
+  bonus_trial_matrix: bonus.TrialMatrix,
+  subject_index: number,
+  session_index: number
+};
 
 const firebaseConfig = {
   apiKey: "AIzaSyAc9n98_3EfvFisQLTDD8snRWOsS4W9vpg",
@@ -19,6 +27,7 @@ const firebaseConfig = {
 let DB: Database | null = null;
 let DB_LEARN_TRIAL_DATA: DatabaseReference | null = null;
 let DB_BONUS_TRIAL_DATA: DatabaseReference | null = null;
+let DB_DESIGN: DatabaseReference | null = null;
 
 function get_learn_trial_data_db() {
   return DB_LEARN_TRIAL_DATA;
@@ -26,6 +35,10 @@ function get_learn_trial_data_db() {
 
 function get_bonus_trial_data_db() {
   return DB_BONUS_TRIAL_DATA;
+}
+
+function get_design_db() {
+  return DB_DESIGN;
 }
 
 function uuid_nest(data: object): object {
@@ -52,6 +65,15 @@ export function push_bonus_trial_data(data: {trial_data: bonus.TrialData, trial_
   push_data(get_bonus_trial_data_db(), data);
 }
 
+export function push_design(data: DesignData) {
+  push_data(get_design_db(), data);
+}
+
+export function make_design_data(dm: DesignMatrix, bonus_trial_matrix: bonus.TrialMatrix, 
+                                 subject_index: number, session_index: number): DesignData {
+  return {design_matrix: dm, bonus_trial_matrix, subject_index, session_index};
+}
+
 export function init_db(on_success: () => void, on_err: (s: string) => void) {
   if (!config.enable_db) {
     on_success();
@@ -62,6 +84,7 @@ export function init_db(on_success: () => void, on_err: (s: string) => void) {
     uuid = config.is_debug_db_user ? 'debug-user' : uuid;
     DB_LEARN_TRIAL_DATA = ref(DB!, `learn-trial-data/${uuid}`);
     DB_BONUS_TRIAL_DATA = ref(DB!, `bonus-trial-data/${uuid}`);
+    DB_DESIGN = ref(DB!, `design-matrix/${uuid}`);
   };
 
   try {
