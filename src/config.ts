@@ -8,6 +8,6 @@ export const config = {
   num_bonus_trials: 4,
   randomize_image_set_order: true,
   enable_db: true,
-  is_debug_db_user: true,
+  is_debug_db_user: false,
   go_fullscreen: false
 };
