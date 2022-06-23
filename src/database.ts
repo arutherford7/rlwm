@@ -6,7 +6,7 @@ import { config } from './config';
 import * as learn_trial from './learn-trial';
 import * as bonus from './bonus-task';
 
-const firebaseConfig = {
+/*const firebaseConfig = {
   apiKey: "AIzaSyAc9n98_3EfvFisQLTDD8snRWOsS4W9vpg",
   authDomain: "rlwm-test.firebaseapp.com",
   projectId: "rlwm-test",
@@ -14,6 +14,18 @@ const firebaseConfig = {
   messagingSenderId: "929708002978",
   appId: "1:929708002978:web:cf61725b82c13bc15d51fb",
   databaseURL: 'https://rlwm-test-default-rtdb.firebaseio.com/',
+};
+*/
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDb_sB1uel4nc2na0QazpPtdKqnfv-8vJ8",
+  authDomain: "rlwm-a7d24.firebaseapp.com",
+  databaseURL: "https://rlwm-a7d24-default-rtdb.firebaseio.com",
+  projectId: "rlwm-a7d24",
+  storageBucket: "rlwm-a7d24.appspot.com",
+  messagingSenderId: "511056477585",
+  appId: "1:511056477585:web:f52d4f375871655955ae30",
+  measurementId: "G-C2HHHFNJK3"
 };
 
 let DB: Database | null = null;
