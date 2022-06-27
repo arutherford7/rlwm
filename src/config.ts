@@ -8,6 +8,11 @@ export const config = {
   num_bonus_trials: 4,
   randomize_image_set_order: true,
   enable_db: true,
+  nicks_db: true,
   is_debug_db_user: false,
-  go_fullscreen: false
+  go_fullscreen: false,
+  require_url_user_id: true,
+  missing_url_user_id: 'missing_user_id',
+  qualtrics_user_id_url_param_name: 'user_id',
+  debug: false
 };

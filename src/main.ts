@@ -6,8 +6,10 @@ import * as bonus_instructions from './bonus-instructions';
 import * as bonus from './bonus-task';
 import * as instructions from './instructions';
 import * as debrief from './debrief';
+import * as util from './util';
 import { DESIGN_MATRICES } from '../data/designs0';
 import { get_random_design_matrix } from '../data/design';
+import { config } from './config';
 
 function init_design() {
   const design_info = get_random_design_matrix(DESIGN_MATRICES);
@@ -25,8 +27,21 @@ function init_design() {
   return {design_matrix: main_design_matrix, bonus_trial_matrix};
 }
 
+function init_meta_data() {
+  const param_name = config.qualtrics_user_id_url_param_name;
+  const user_id = util.parse_user_id_from_url(param_name, config.require_url_user_id, config.missing_url_user_id);
+  const date = (new Date()).toString();
+
+  if (config.debug) {
+    console.log('Date: ', date, ' | Qualtrics user id: ', user_id);
+  }
+
+  db.push_meta_data({qualtrics_user_id: user_id, date});
+}
+
 db.init_db(() => {
   init_images();
+  init_meta_data();
   const {design_matrix, bonus_trial_matrix} = init_design();
 
   instructions.run()

@@ -168,3 +168,22 @@ export function random_alpha_numeric_string(n: number): string {
   }
   return result;
 }
+
+export function parse_user_id_from_url(id_param: string, require_id: boolean, missing_url_user_id: string): string {
+  const search_params = new URLSearchParams(window.location.search);
+  const params = Object.fromEntries(search_params.entries());
+  const user_id: string | undefined = params[id_param];
+  if (user_id === undefined) {
+    if (require_id) {
+      throw new Error(`Expected url query parameter "${id_param}" but did not find one, and require_id is true`);
+    } else {
+      return missing_url_user_id;
+    }
+  } else {
+    if (typeof(user_id) !== 'string') {
+      throw new Error('Expected url query parameter to be string.');
+    } else {
+      return user_id;
+    }
+  }
+}
