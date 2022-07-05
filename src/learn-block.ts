@@ -14,6 +14,7 @@ type Context = {
 }
 
 export type Params = {
+  font_size_px: number,
   trials: learn_trial.TrialDescriptor[],
   image_set: ImageStimulus[],
   all_images: ImageStimulus[],
@@ -43,6 +44,7 @@ function present_image_set(context: Context, next: () => void) {
   const text = util.make_page();
   util.set_percent_dimensions(text, 75, 10);
   text.style.color = 'white';
+  text.style.fontSize = `${context.params.font_size_px}px`;
   text.innerText = `Take some time to identify the images for this block.
   [Press spacebar to continue.]`;
 

@@ -1,3 +1,5 @@
+import { config } from './config'
+
 export function one_shot_key_listener(type: 'keydown' | 'keyup', cb: (e: KeyboardEvent) => void): () => boolean {
   const listener: {value: null | ((e: KeyboardEvent) => void)} = {value: null};
 
@@ -112,6 +114,8 @@ export function make_page(): HTMLDivElement {
 export function make_text_page(): HTMLDivElement {
   const page = make_page();
   page.style.color = 'white';
+  page.style.width = '800px';
+  page.style.fontSize = `${config.instructions_font_size_px}px`;
   return page;
 }
 

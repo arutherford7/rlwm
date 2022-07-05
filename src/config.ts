@@ -14,5 +14,6 @@ export const config = {
   require_url_user_id: true,
   missing_url_user_id: 'missing_user_id',
   qualtrics_user_id_url_param_name: 'user_id',
-  debug: false
+  debug: false,
+  instructions_font_size_px: 20
 };

@@ -33,7 +33,7 @@ function make_pages() {
   
   (() => {
     const page = util.make_text_page();
-    page.innerText = 'Welcome to the memory game.';
+    page.innerText = 'Welcome to the memory game.\nPress SPACEBAR to begin instructions.';
     disp.push(page);
   })();
   (() => {
@@ -88,10 +88,24 @@ function run_confirm(page_elements: HTMLDivElement[]) {
   return state.run();
 }
 
+function run_key_reminder() {
+  state.next(() => {
+    const page = util.make_text_page();
+    page.innerText = `Please now place three fingers from your dominant hand on the letters "C, V, and B" on your keyboard before beginning.`;
+    util.append_page(page);
+    util.wait_for_space_bar(() => {
+      util.remove_page(page);
+      state.done();
+    });
+  });
+  return state.run();
+}
+
 export function run(): Promise<void> {
   state.next(go_fullscreen);
   const page_elements = make_pages();
   return state.run()
     .then(_ => pages.run(pages.make_simple_pages(page_elements)))
-    .then(_ => run_confirm(page_elements));
+    .then(_ => run_confirm(page_elements)
+    .then(_ => run_key_reminder()));
 }

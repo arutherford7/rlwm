@@ -3,6 +3,7 @@ import * as state from './state'
 import { ImageDescriptor, get_images } from './image';
 import { push_bonus_trial_data } from './database';
 import { DesignMatrix } from '../data/design';
+import { config } from './config';
 
 export type TrialDescriptor = {
   left_image: ImageDescriptor,
@@ -96,6 +97,7 @@ function advance(matrix: TrialMatrix): TrialDescriptor {
 function new_block(params: Params) {
   const page = util.make_page();
   page.style.color = 'white';
+  page.style.fontSize = `${config.instructions_font_size_px}px`;
   page.innerText = 'Press spacebar to begin.';
   util.append_page(page);
 

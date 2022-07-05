@@ -136,6 +136,7 @@ function new_block(design: DesignMatrix) {
   }
 
   const params: learn_block.Params = {
+    font_size_px: config.instructions_font_size_px,
     trials: trial_matrix,
     image_set: image_set,
     all_images: images,
@@ -158,6 +159,7 @@ function end_block(design: DesignMatrix) {
     const page = util.make_page();
     util.set_pixel_dimensions(page, 400, 100);
     page.style.color = 'white';
+    page.style.fontSize = `${config.instructions_font_size_px}px`;
     page.innerText = `End of block ${BLOCK}. You may press the spacebar whenever you are ready to begin the next block.`;
     util.append_page(page);
     util.wait_for_space_bar(() => {

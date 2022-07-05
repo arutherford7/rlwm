@@ -33,6 +33,8 @@ const FEEDBACK_MS = 1000;
 const RESPONSE_WINDOW_MS = 1400;
 const DEBUG_DISPLAY = false;
 const FEEDBACK_FONT_SIZE = 30;
+const SMALL_REWARD_COLOR = 'blue';
+const BIG_REWARD_COLOR = 'green';
 
 function record_response(result: Result, response: string, rt: number, correct: boolean, awarded: number) {
   result.response = response;
@@ -96,11 +98,12 @@ function success_feedback(context: Context, rt: number) {
   util.set_pixel_dimensions(page, 100, 100);
 
   if (DEBUG_DISPLAY) {
-    page.style.backgroundColor = is_big_reward ? 'blue' : 'green';
+    page.style.backgroundColor = is_big_reward ? BIG_REWARD_COLOR : SMALL_REWARD_COLOR;
     page.innerText = `Reward ${trial.possible_reward}. RT was ${rt} ms.`;
   } else {
-    page.innerText = `+${trial.possible_reward}`;
-    page.style.color = is_big_reward ? 'blue' : 'green';
+    const addtl_text = is_big_reward ? '!!' : '';
+    page.innerText = `+${trial.possible_reward}${addtl_text}`;
+    page.style.color = is_big_reward ? BIG_REWARD_COLOR : SMALL_REWARD_COLOR;
     page.style.fontSize = `${FEEDBACK_FONT_SIZE}px`;
   }
   util.append_page(page);

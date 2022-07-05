@@ -28,6 +28,7 @@ function new_block() {
   const trial_matrix = new_trial_matrix(0, image_set, config.min_num_practice_trials);
 
   const params: learn_block.Params = {
+    font_size_px: config.instructions_font_size_px,
     trials: trial_matrix,
     image_set: image_set,
     all_images: images,
@@ -51,6 +52,7 @@ function debrief() {
   if (FINISHED_PRACTICE) {
     const page = util.make_page();
     page.style.color = 'white';
+    page.style.fontSize = `${config.instructions_font_size_px}px`;
     page.innerText = 'End of block 0. [Press spacebar to continue]';
     util.append_page(page);
 

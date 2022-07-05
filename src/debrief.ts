@@ -1,10 +1,12 @@
 import * as util from './util';
 import * as state from './state';
+import { config } from './config';
 
 function debrief() {
   const page = util.make_page();
 
   page.style.color = 'white';
+  page.style.fontSize = `${config.instructions_font_size_px}px`;
   page.innerText = 'Task complete. Thank you for participating. Press Space to exit.';
   util.append_page(page);
 
