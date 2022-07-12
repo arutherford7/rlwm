@@ -44,7 +44,8 @@ db.init_db(() => {
   init_meta_data();
   const {design_matrix, bonus_trial_matrix} = init_design();
 
-  instructions.run()
+  (new Promise((resolve, _) => resolve(null)))
+    .then(_ => instructions.run())
     .then(_ => practice.run())
     .then(_ => task.run(design_matrix))
     .then(_ => bonus_instructions.run())
