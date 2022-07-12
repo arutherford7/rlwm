@@ -5,6 +5,8 @@ import { push_bonus_trial_data } from './database';
 import { DesignMatrix } from '../data/design';
 import { config } from './config';
 
+const IMAGE_CONTAINER_SIZE_PX = 300;
+
 export type TrialDescriptor = {
   left_image: ImageDescriptor,
   right_image: ImageDescriptor,
@@ -123,11 +125,21 @@ function new_trial(context: TaskContext) {
 }
 
 function respond(im0: HTMLImageElement, im1: HTMLImageElement, on_press: (e: KeyboardEvent) => void) {
+  const im_size = IMAGE_CONTAINER_SIZE_PX;
+  
   const page = util.make_page();
   const im_container = util.make_page();
   im_container.style.flexDirection = 'row';
-  im_container.appendChild(im0);
-  im_container.appendChild(im1);
+
+  const im0_container = util.make_flex_centered_div(im_size, im_size);
+  im0_container.appendChild(im0);
+
+  const im1_container = util.make_flex_centered_div(im_size, im_size);
+  im1_container.appendChild(im1);
+
+  im_container.appendChild(im0_container);
+  im_container.appendChild(im1_container);
+
   page.appendChild(im_container);
   util.append_page(page);
   util.one_shot_key_listener('keydown', e => {

@@ -15,5 +15,5 @@ export const config = {
   missing_url_user_id: 'missing_user_id',
   qualtrics_user_id_url_param_name: 'user_id',
   debug: false,
-  instructions_font_size_px: 20
+  instructions_font_size_px: 26
 };

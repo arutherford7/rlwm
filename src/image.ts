@@ -16,12 +16,25 @@ export type ImageStimulus = {
 
 const IMAGES: ImageStimulus[] = [];
 const TRAINING_IMAGES: ImageStimulus[] = [];
+let BONUS_KEY_REMINDER_IMAGE: HTMLImageElement | null = null;
 
 type ImageSetInfo = {
   urls: string[],
   set_indices: number[],
   image_indices: number[],
   image_numbers: number[]
+}
+
+export function require_bonus_key_reminder_image_element(): HTMLImageElement {
+  if (BONUS_KEY_REMINDER_IMAGE !== null) {
+    return BONUS_KEY_REMINDER_IMAGE;
+  } else {
+    const url = 'img/keyreminder/bonus_keys.jpg';
+    const el = document.createElement('img');
+    BONUS_KEY_REMINDER_IMAGE = el;
+    el.src = url;
+    return el;
+  }
 }
 
 function generate_image_set_info(num_sets: number, images_per_set: number): ImageSetInfo {

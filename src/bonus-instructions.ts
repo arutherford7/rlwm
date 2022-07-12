@@ -1,5 +1,6 @@
 import * as pages from './pages';
 import * as util from './util';
+import { require_bonus_key_reminder_image_element } from './image';
 
 export function run() {
   let elements: HTMLDivElement[] = [];
@@ -30,9 +31,12 @@ export function run() {
   })();
 
   (() => {
+    const container = util.make_text_page();
     const page = util.make_text_page();
     page.innerText = `To choose the image on the left, hit the "1" key. To choose the image on the right, hit the "0" key.`;
-    elements.push(page);
+    container.appendChild(page);
+    container.appendChild(require_bonus_key_reminder_image_element());
+    elements.push(container);
   })();
 
   return pages.run(pages.make_simple_pages(elements));

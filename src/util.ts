@@ -119,6 +119,28 @@ export function make_text_page(): HTMLDivElement {
   return page;
 }
 
+export function make_flex_centered_div(w: number, h: number): HTMLDivElement {
+  const el = document.createElement('div');
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  el.style.width = `${w}px`;
+  el.style.height = `${h}px`;
+  return el;
+}
+
+export function make_p_elements(text: string[]): HTMLParagraphElement[] {
+  return text.map(txt => {
+    const el = document.createElement('p');
+    el.innerText = txt;
+    return el;
+  });
+}
+
+export function append_children<T extends HTMLElement, U extends HTMLElement>(parent: T, elements: U[]): void {
+  elements.map(el => parent.appendChild(el));
+}
+
 export function set_percent_dimensions<T extends HTMLElement>(el: T, w: number, h: number): void {
   el.style.width = `${w}%`;
   el.style.height = `${h}%`
