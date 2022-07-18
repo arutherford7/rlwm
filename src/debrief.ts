@@ -1,6 +1,19 @@
 import * as util from './util';
 import * as state from './state';
+import * as pages from './pages';
 import { config } from './config';
+
+function congrats() {
+  let elements: HTMLDivElement[] = [];
+
+  (() => {
+    const page = util.make_text_page();
+    page.innerText = `Congratulations! You won $4.50 for your performance in this game!`;
+    elements.push(page);
+  })();
+
+  return pages.run(pages.make_simple_pages(elements));
+}
 
 function debrief() {
   const page = util.make_page();
@@ -17,6 +30,9 @@ function debrief() {
 }
 
 export function run(): Promise<void> {
-  state.next(debrief);
-  return state.run();
+  return congrats()
+    .then(_ => {
+      state.next(debrief);
+      return state.run();
+    });
 }
