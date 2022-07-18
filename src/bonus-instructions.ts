@@ -31,6 +31,13 @@ export function run() {
   })();
 
   (() => {
+    const page = util.make_text_page();
+    const txt = ['Remember, your goal is to pick which of the two images you believe earned you the most points.', 'Press SPACEBAR to continue.'];
+    util.append_children(page, util.make_p_elements(txt));
+    elements.push(page);
+  })();
+
+  (() => {
     const container = util.make_text_page();
     const page = util.make_text_page();
     page.innerText = `To choose the image on the left, hit the "1" key. To choose the image on the right, hit the "0" key.`;
